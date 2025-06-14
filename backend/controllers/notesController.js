@@ -1,12 +1,17 @@
-import { getConnection } from '../db.js';
+import { pool } from '../db.js';
 
 // GET /notes/get-all-note
 const getAllNote = async(req, res) => {
 
-    const connection = await getConnection();
+    const { user_id } = req.user;
 
     try {
-        const [note] = await connection.execute('SELECT * FROM notes');
+        const [note] = await pool.query(
+            `SELECT * FROM notes
+             WHERE user_id = ?
+             ORDER BY is_pinned DESC
+            `, [user_id]
+        );
 
         return res.status(200).json({
             error: false,
@@ -24,7 +29,6 @@ const getAllNote = async(req, res) => {
 const addNote = async(req, res) => {
     const { title, content, tags = [] } = req.body;
     const { user_id } = req.user;
-    const connection = await getConnection();
 
     if(!title) return res.status(400).json({
         error: true, message: "Title is required."
@@ -34,10 +38,8 @@ const addNote = async(req, res) => {
         error: true, message: "Content is required."
     });
 
-    console.log("Authenticated user_id:", user_id);
-
     try {
-        const [result] = await connection.execute(
+        const [result] = await pool.query(
             'INSERT INTO notes (title, content, tags, created_on, user_id) VALUES (?, ?, ?, NOW(), ?)',
             [title, content, JSON.stringify(tags), user_id]
         );
@@ -61,16 +63,42 @@ const addNote = async(req, res) => {
     }
 }
 
+// GET /notes/search-note
+const searchNote = async (req, res) => {
+    const {user_id} = req.user;
+    const {query} = req.query;
+
+    if(!query) {
+        return res.status(400).json({ error: true, message: "Query is required!" });
+    }
+
+    try {
+        const [matchingNotes] = await pool.query(
+            `SELECT * FROM notes
+             WHERE user_id = ? AND
+             (
+                title LIKE ? OR
+                content LIKE ? OR
+                tags LIKE ?
+             )`, [user_id, `%${query}%`, `%${query}%`, `%${query}%`]
+        );
+        return res.status(200).json({
+            error: false,
+            note: matchingNotes,
+            message: "Notes matching the search query retrieved successfully"
+        });
+    } catch (error) {
+        return res.status(500).json({ error: true, message: "Internal Server Error" });
+    }
+}
+
 // PUT /notes/edit-note/:id
 const editNote = async(req, res) => {
     const note_id = req.params.id;
     const { title, content, tags = [], isPinned } = req.body;
     const { user_id } = req.user;
-    const connection = await getConnection();
+
     const sanitize = (val) => val === undefined ? null : val;
-
-
-    console.log(note_id);
 
     if(!title && !content && (!tags || tags.length === 0)) {
         return res.status(400).json({
@@ -79,14 +107,14 @@ const editNote = async(req, res) => {
     }
 
     try {
-        const [existingNote] = await connection.execute(
+        const [existingNote] = await pool.query(
             ('SELECT * FROM notes WHERE id = ? AND user_id = ?'),
             [note_id, user_id]
         );
 
         if(existingNote.length === 0) return res.status(404).json({ error: true, message: "Note not found" });
 
-        const [updateNote] = await connection.execute(
+        const [updateNote] = await pool.query(
             `UPDATE notes
             SET 
                 title = COALESCE(?, title),
@@ -106,7 +134,7 @@ const editNote = async(req, res) => {
 
         return res.status(200).json({
             error: false,
-            note: updateNote[0],
+            note: existingNote[0],
             message: "Note updated successfully",
         })
 
@@ -119,10 +147,9 @@ const editNote = async(req, res) => {
 // DELETE /notes/delete-note/:id
 const deleteNote = async (req, res) => {
     const note_id = req.params.id;
-    const connection = await getConnection();
 
     try {
-        const [existingNote] = await connection.execute(
+        const [existingNote] = await pool.query(
             'SELECT * FROM notes WHERE id = ?', [note_id]
         );
 
@@ -130,7 +157,7 @@ const deleteNote = async (req, res) => {
             return res.status(404).json({ error: true, message: "Note not found" });
         }
 
-        await connection.execute('DELETE FROM notes WHERE id = ?', [note_id]);
+        await pool.query('DELETE FROM notes WHERE id = ?', [note_id]);
 
         return res.status(200).json({ error: false, message: "Note deleted successfully."} );
 
@@ -145,18 +172,18 @@ const updateNotePinned = async (req, res) => {
     const note_id = req.params.id;
     const { isPinned } = req.body;
     const { user_id } = req.user;
-    const connection = await getConnection();
+
     const sanitize = (val) => val === undefined ? null : val;
 
     try {
-        const [existingNote] = await connection.execute(
+        const [existingNote] = await pool.query(
             ('SELECT * FROM notes WHERE id = ? AND user_id = ?'),
             [note_id, user_id]
         );
 
         if(existingNote.length === 0) return res.status(404).json({ error: true, message: "Note not found" });
 
-        const [updateNote] = await connection.execute(
+        const [updateNote] = await pool.query(
             `UPDATE notes
             SET 
                 is_pinned = COALESCE(?, is_pinned)
@@ -165,7 +192,7 @@ const updateNotePinned = async (req, res) => {
 
         return res.status(200).json({
             error: false,
-            note: updateNote[0],
+            note: existingNote[0],
             message: "Note updated successfully",
         })
 
@@ -175,4 +202,4 @@ const updateNotePinned = async (req, res) => {
     }
 }
 
-export {getAllNote, addNote, editNote, deleteNote, updateNotePinned};
+export {getAllNote, addNote, editNote, deleteNote, updateNotePinned, searchNote};
