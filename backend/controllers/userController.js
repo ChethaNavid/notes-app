@@ -1,9 +1,9 @@
-
 import { pool } from '../db.js';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 
 const createNewAccount = async(req, res) => {
+
     const {fullName, email, password} = req.body;
 
     if(!fullName) return res.status(400).json({ error: "Full Name is required."});
@@ -13,7 +13,6 @@ const createNewAccount = async(req, res) => {
     if(!password) return res.status(400).json({ error: "Password is required."})
 
     const [existingUser] = await pool.query(
-
         'SELECT * FROM users WHERE email = ?', [email]
     );
 

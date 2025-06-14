@@ -29,7 +29,6 @@ const getAllNote = async(req, res) => {
 const addNote = async(req, res) => {
     const { title, content, tags = [] } = req.body;
     const { user_id } = req.user;
-    const connection = await getConnection();
 
     if(!title) return res.status(400).json({
         error: true, message: "Title is required."
@@ -98,9 +97,6 @@ const editNote = async(req, res) => {
     const note_id = req.params.id;
     const { title, content, tags = [], isPinned } = req.body;
     const { user_id } = req.user;
-    const connection = await getConnection();
-    const sanitize = (val) => val === undefined ? null : val;
-
 
     const sanitize = (val) => val === undefined ? null : val;
 
@@ -117,7 +113,7 @@ const editNote = async(req, res) => {
         );
 
         if(existingNote.length === 0) return res.status(404).json({ error: true, message: "Note not found" });
-      
+
         const [updateNote] = await pool.query(
             `UPDATE notes
             SET 
@@ -151,7 +147,6 @@ const editNote = async(req, res) => {
 // DELETE /notes/delete-note/:id
 const deleteNote = async (req, res) => {
     const note_id = req.params.id;
-    const connection = await getConnection();
 
     try {
         const [existingNote] = await pool.query(
@@ -177,7 +172,7 @@ const updateNotePinned = async (req, res) => {
     const note_id = req.params.id;
     const { isPinned } = req.body;
     const { user_id } = req.user;
-    const connection = await getConnection();
+
     const sanitize = (val) => val === undefined ? null : val;
 
     const sanitize = (val) => val === undefined ? null : val;
