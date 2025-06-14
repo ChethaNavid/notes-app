@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 
 const createNewAccount = async(req, res) => {
-    
+
     const {fullName, email, password} = req.body;
 
     if(!fullName) return res.status(400).json({ error: "Full Name is required."});

@@ -175,6 +175,8 @@ const updateNotePinned = async (req, res) => {
 
     const sanitize = (val) => val === undefined ? null : val;
 
+    const sanitize = (val) => val === undefined ? null : val;
+
     try {
         const [existingNote] = await pool.query(
             ('SELECT * FROM notes WHERE id = ? AND user_id = ?'),
