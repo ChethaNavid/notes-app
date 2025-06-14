@@ -1,24 +1,24 @@
+
 import { pool } from '../db.js';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 
 const createNewAccount = async(req, res) => {
-    
     const {fullName, email, password} = req.body;
 
     if(!fullName) return res.status(400).json({ error: "Full Name is required."});
 
     if(!email) return res.status(400).json({ error: "Email is required." });
 
-
     if(!password) return res.status(400).json({ error: "Password is required."})
 
     const [existingUser] = await pool.query(
+
         'SELECT * FROM users WHERE email = ?', [email]
     );
 
-    if(existingUser.rows.length > 0) {
-        return res.status(409).json({ error: "User already exists." })
+    if(existingUser.length > 0) {
+        return res.status(409).json({ error: true, message: "User already exists." })
     }
 
     const [result] = await pool.query(
@@ -26,7 +26,13 @@ const createNewAccount = async(req, res) => {
         [fullName, email, password]
     );
 
-    const user = result.rows[0];
+    const userId = result.insertId;
+
+    const user = {
+      id: userId,
+      full_name: fullName,
+      email: email,
+    };
 
     const accessToken = jwt.sign(
         { user_id: user.id, email: user.email },
@@ -35,11 +41,7 @@ const createNewAccount = async(req, res) => {
     
     res.status(201).json({ 
         error: false,
-        user: {
-            id: user.id,
-            name: user.full_name,
-            email: user.email,
-        },
+        user,
         message: "Registration Successful", 
         token: accessToken,
     });
@@ -49,20 +51,20 @@ const login = async(req, res) => {
 
     const {email, password} = req.body;
 
-    if(!email) return res.status(400).json({ error: "Email is required." });
+    if(!email) return res.status(400).json({ error: true, message: "Email is required." });
 
-    if(!password) return res.status(400).json({ error: "Password is required." });
+    if(!password) return res.status(400).json({ error: true, message: "Password is required." });
 
     const [existingUser] = await pool.query(
         'SELECT * FROM users WHERE email = ?', [email]
     );
 
-    if(existingUser.rows.length === 0) return res.status(404).json({ error: "User not found" });
+    if(existingUser.length === 0) return res.status(404).json({ error: true, message: "User not found" });
 
-    const user = existingUser.rows[0];
+    const user = existingUser[0];
 
     if(user.password !== password) {
-        return res.status(401).json({ error: "Incorrect password." });
+        return res.status(401).json({ error: true, message: "Incorrect password." });
     }
 
     const accessToken = jwt.sign(
@@ -85,15 +87,15 @@ const getUser = async (req, res) => {
 
     const [existingUser] = await pool.query('SELECT id, full_name, email, created_on FROM users WHERE id = ?', [user_id]);
 
-    if(existingUser.rows.length === 0) {
+    if(existingUser.length === 0) {
         return res.status(404).json({ error: true, message: "User not found."});
     } 
 
-    const users = existingUser.rows[0];
+    const user = existingUser[0];
 
     return res.status(200).json({
         error: false,
-        users: users, 
+        user,
         message: "Logged-in user retrieved successfully.",
     })
 }

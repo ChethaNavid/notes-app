@@ -1,6 +1,6 @@
 import { pool } from '../db.js';
 
-// GET /notes/get-all-notes
+// GET /notes/get-all-note
 const getAllNote = async(req, res) => {
 
     const { user_id } = req.user;
@@ -29,6 +29,7 @@ const getAllNote = async(req, res) => {
 const addNote = async(req, res) => {
     const { title, content, tags = [] } = req.body;
     const { user_id } = req.user;
+    const connection = await getConnection();
 
     if(!title) return res.status(400).json({
         error: true, message: "Title is required."
@@ -44,15 +45,19 @@ const addNote = async(req, res) => {
             [title, content, JSON.stringify(tags), user_id]
         );
 
-        const note = result.rows[0];
+        const note = {
+            id: result.insertId,
+            title,
+            content,
+            tags,
+            user_id,
+        }
+        return res.status(200).json({
+            error: false,
+            note,
+            message: "Note added successfully."
+        });
 
-        if(note) {
-            return res.status(200).json({
-                error: false,
-                note,
-                message: "Note added successfully."
-            })
-        };
     } catch (error) {
         console.error("Error adding note:", error);
         return res.status(500).json({error: true, message: "Internal Server Error"});
@@ -93,6 +98,9 @@ const editNote = async(req, res) => {
     const note_id = req.params.id;
     const { title, content, tags = [], isPinned } = req.body;
     const { user_id } = req.user;
+    const connection = await getConnection();
+    const sanitize = (val) => val === undefined ? null : val;
+
 
     const sanitize = (val) => val === undefined ? null : val;
 
@@ -108,20 +116,25 @@ const editNote = async(req, res) => {
             [note_id, user_id]
         );
 
-        if(existingNote.rows.length === 0) return res.status(404).json({ error: true, message: "Note not found" });
-
+        if(existingNote.length === 0) return res.status(404).json({ error: true, message: "Note not found" });
+      
         const [updateNote] = await pool.query(
             `UPDATE notes
             SET 
-                title = COALESCE($1, title),
-                content = COALESCE($2, content),
-                tags = COALESCE($3, tags),
-                is_pinned = COALESCE($4, is_pinned)
-            WHERE id = $5 AND user_id = $6
-            RETURNING *;`, [title, content, tags, isPinned, note_id, user_id]
+                title = COALESCE(?, title),
+                content = COALESCE(?, content),
+                tags = COALESCE(?, tags),
+                is_pinned = COALESCE(?, is_pinned)
+            WHERE id = ? AND user_id = ?;`, 
+            [
+                sanitize(title),
+                sanitize(content),
+                sanitize(JSON.stringify(tags)),
+                sanitize(isPinned),
+                note_id,
+                user_id
+            ]
         );
-
-        const note = updateNote.rows[0];
 
         return res.status(200).json({
             error: false,
@@ -138,13 +151,14 @@ const editNote = async(req, res) => {
 // DELETE /notes/delete-note/:id
 const deleteNote = async (req, res) => {
     const note_id = req.params.id;
+    const connection = await getConnection();
 
     try {
         const [existingNote] = await pool.query(
             'SELECT * FROM notes WHERE id = ?', [note_id]
         );
 
-        if(existingNote.rows.length === 0) {
+        if(existingNote.length === 0) {
             return res.status(404).json({ error: true, message: "Note not found" });
         }
 
@@ -163,6 +177,8 @@ const updateNotePinned = async (req, res) => {
     const note_id = req.params.id;
     const { isPinned } = req.body;
     const { user_id } = req.user;
+    const connection = await getConnection();
+    const sanitize = (val) => val === undefined ? null : val;
 
     const sanitize = (val) => val === undefined ? null : val;
 
@@ -172,17 +188,14 @@ const updateNotePinned = async (req, res) => {
             [note_id, user_id]
         );
 
-        if(existingNote.rows.length === 0) return res.status(404).json({ error: true, message: "Note not found" });
+        if(existingNote.length === 0) return res.status(404).json({ error: true, message: "Note not found" });
 
         const [updateNote] = await pool.query(
             `UPDATE notes
             SET 
-                is_pinned = COALESCE($1, is_pinned OR FALSE)
-            WHERE id = $2 AND user_id = $3
-            RETURNING *;`, [isPinned, note_id, user_id]
+                is_pinned = COALESCE(?, is_pinned)
+            WHERE id = ? AND user_id = ?;`, [sanitize(isPinned), note_id, user_id]
         );
-
-        const note = updateNote.rows[0];
 
         return res.status(200).json({
             error: false,
