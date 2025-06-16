@@ -7,6 +7,7 @@ A full-stack Notes application that allows users to sign up, login, create, upda
 ## Features
 
 - JWT-based user authentication
+- Hash the password to protect user's sensitive information (password)
 - Create, edit, and delete personal notes
 - Add tags to notes with `#` display
 - Pin and unpin notes
@@ -28,6 +29,7 @@ A full-stack Notes application that allows users to sign up, login, create, upda
 - Express.js
 - MySQL (mysql2)
 - JWT (jsonwebtoken)
+- bcrypt (hash password)
 
 ---
 
