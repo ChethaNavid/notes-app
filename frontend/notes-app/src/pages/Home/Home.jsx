@@ -129,7 +129,7 @@ const Home = () => {
 
         try {
             const response = await axiosInstance.put("/notes/update-note-pinned/" + noteId, {
-                isPinned: !noteData.is_pinned,
+                isPinned: !noteData.isPinned,
             })
 
             if(response.data && response.data.note) {
@@ -153,10 +153,10 @@ const Home = () => {
                             <NoteCard 
                                 key={item.id}
                                 title={item.title}
-                                date={item.created_on}
+                                date={item.createdAt}
                                 content={item.content}
                                 tags={item.tags}
-                                isPinned={item.is_pinned}
+                                isPinned={item.isPinned}
                                 onEdit={() => handleEditNote(item)}
                                 onDelete={() => handleDelete(item)}
                                 onPinNote={() => updatePinnedNote(item)}
