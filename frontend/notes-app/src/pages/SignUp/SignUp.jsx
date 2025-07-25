@@ -34,7 +34,7 @@ const SignUp = () => {
         // Sign Up API Call
         try {
             const response = await axiosInstance.post("/users/create-account", {
-                fullName: username,
+                username: username,
                 email: email,
                 password: password,
             });
@@ -91,7 +91,7 @@ const SignUp = () => {
 
                     <p className='text-sm text-center mt-4'>
                         Already have an account? {""}
-                        <Link to="/login" className='font-medium text-primary underline'>
+                        <Link to="/" className='font-medium text-primary underline'>
                             Login
                         </Link>
                     </p>
