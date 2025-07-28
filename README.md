@@ -27,7 +27,7 @@ A full-stack Notes application that allows users to sign up, login, create, upda
 ### Backend:
 - Node.js
 - Express.js
-- MySQL (mysql2)
+- MySQL (sequelize ORM)
 - JWT (jsonwebtoken)
 - bcrypt (hash password)
 
@@ -51,34 +51,7 @@ https://dev.mysql.com/doc/refman/8.4/en/windows-installation.html
 ```bash
 mysql -u root -p
 ```
-**Create a new database in MySQL**
-```sql
-CREATE DATABASE notes_app;
-use notes_app;
-```
-**Create table users**
-```sql
-CREATE TABLE users (
-   id INT PRIMARY KEY AUTO_INCREMENT,
-   full_name VARCHAR(50),
-   email VARCHAR(100) unique,
-   password VARCHAR(50),
-   created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-**Create table notes**
-```sql
-CREATE TABLE notes (
-   id INT AUTO_INCREMENT PRIMARY KEY,
-   title VARCHAR(100) NOT NULL,
-   content TEXT NOT NULL,
-   tags JSON,
-   is_pinned tinyint(1) DEFAULT 0,
-   user_id INT NOT NULL,
-   created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-```
+
 ---
 
 ## Steps to Run Locally
